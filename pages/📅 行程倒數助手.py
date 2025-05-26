@@ -1,17 +1,28 @@
 import streamlit as st
 import pandas as pd
 from datetime import datetime, timedelta
+import os
 
-st.set_page_config(page_title="行程倒數助手", page_icon="📅", layout="centered")
+st.set_page_config(page_title="PLAVE 行程倒數助手", page_icon="📅", layout="centered")
 st.title("📅 PLAVE 行程倒數助手")
 
+SCHEDULE_FILE = "schedules.csv"
+
 if "schedule" not in st.session_state:
-    st.session_state.schedule = []
+    if os.path.exists(SCHEDULE_FILE):
+        df = pd.read_csv(SCHEDULE_FILE, parse_dates=["start", "end"])
+        st.session_state.schedule = df.to_dict("records")
+    else:
+        st.session_state.schedule = []
+
+def save_schedule():
+    df = pd.DataFrame(st.session_state.schedule)
+    df.to_csv(SCHEDULE_FILE, index=False)
 
 category_options = ["官方活動", "粉絲應援", "演唱會資訊", "節目出演", "社群直播", "其他"]
 
-st.subheader("➕ 新增行程")
 with st.form("add_event_form", clear_on_submit=True):
+    st.subheader("➕ 新增行程")
     name = st.text_input("活動名稱")
     category = st.selectbox("活動類別", category_options)
     start_date = st.date_input("開始日期", value=datetime.now().date())
@@ -29,22 +40,22 @@ with st.form("add_event_form", clear_on_submit=True):
             "start": start_dt,
             "end": end_dt
         })
+        save_schedule()
         st.success("✅ 已新增行程")
 
 st.subheader("📋 所有行程")
 if not st.session_state.schedule:
     st.info("目前尚未新增任何行程")
 else:
-    # 標題列（固定欄位名稱）
-    head = st.columns([2, 2, 2.5, 2.5, 2, 1.5])
-    head[0].markdown("**活動名稱**")
-    head[1].markdown("**類別**")
-    head[2].markdown("**開始時間**")
-    head[3].markdown("**結束時間**")
-    head[4].markdown("**狀態**")
-    head[5].markdown("**操作**")
-
     now = datetime.now()
+    header = st.columns([2, 2, 2.5, 2.5, 2, 1.5])
+    header[0].markdown("**活動名稱**")
+    header[1].markdown("**類別**")
+    header[2].markdown("**開始時間**")
+    header[3].markdown("**結束時間**")
+    header[4].markdown("**狀態**")
+    header[5].markdown("**操作**")
+
     for i, event in enumerate(st.session_state.schedule):
         status = (
             f"🕒 倒數 {((event['start'] - now).days)} 天"
@@ -60,11 +71,11 @@ else:
         with cols[5]:
             if st.button("✏️", key=f"edit_{i}"):
                 st.session_state.editing = i
-            if st.button(" 🗑 ", key=f"delete_{i}"):
+            if st.button("🗑", key=f"delete_{i}"):
                 st.session_state.schedule.pop(i)
+                save_schedule()
                 st.experimental_rerun()
 
-# 編輯區
 if "editing" in st.session_state:
     idx = st.session_state.editing
     ev = st.session_state.schedule[idx]
@@ -79,8 +90,8 @@ if "editing" in st.session_state:
         new_start = datetime.combine(new_start_date, new_start_time)
         new_end = datetime.combine(new_end_date, new_end_time)
 
-        save = st.form_submit_button("儲存變更")
-        if save:
+        save_btn = st.form_submit_button("儲存變更")
+        if save_btn:
             st.session_state.schedule[idx] = {
                 "name": new_name,
                 "category": new_cat,
@@ -88,5 +99,6 @@ if "editing" in st.session_state:
                 "end": new_end
             }
             del st.session_state.editing
+            save_schedule()
             st.success("✅ 已更新行程")
             st.experimental_rerun()
