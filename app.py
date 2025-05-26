@@ -1,97 +1,75 @@
 import streamlit as st
-import pandas as pd
-from datetime import datetime, timedelta
 
-from streamlit.runtime.scriptrunner import RerunException
-from streamlit.runtime.scriptrunner.script_run_context import get_script_run_ctx
+st.set_page_config(page_title="PLLI 的天地", page_icon="✨", layout="centered")
 
-def safe_rerun():
-    ctx = get_script_run_ctx()
-    raise RerunException(ctx)
+# 星空背景圖 + 卡片樣式
+st.markdown("""
+<style>
+body {
+    background: linear-gradient(135deg, #fce4ec, #e0f7fa);
+    color: #3f3f3f;
+}
+h1, h2, h3 {
+    color: #7b1fa2;
+    font-family: 'Segoe UI', 'Noto Sans TC', sans-serif;
+}
+span, p {
+    font-family: 'Segoe UI', 'Noto Sans TC', sans-serif;
+}
+.block-container {
+    padding-top: 2rem;
+}
+</style>
+""", unsafe_allow_html=True)
 
-st.set_page_config(page_title="行程倒數助手", page_icon="📅", layout="centered")
-st.title("📅 PLAVE 行程倒數助手")
+# 開始卡片內容
+st.markdown("<div class='card'>", unsafe_allow_html=True)
 
-# 初始化資料
-if "schedule" not in st.session_state:
-    st.session_state.schedule = []
+# LOGO 圖片
+st.image("assets/PLLI.jpg", caption="💖 PLLI 的 LOGO", use_container_width=True)
 
-# 活動類別選項
-category_options = ["官方活動", "粉絲應援", "演唱會資訊", "節目出演", "社群直播", "其他"]
+<audio controls>
+  <source src="app.mp3" type="audio/mpeg">
+  您的瀏覽器不支援音訊播放。
+</audio>
 
-st.subheader("➕ 新增行程")
-with st.form("add_event_form", clear_on_submit=True):
-    name = st.text_input("活動名稱")
-    category = st.selectbox("活動類別", category_options)
+# 歡迎文字
+st.markdown("""
+## ✨ 安妞！歡迎來到 **PLLI 的天地**
+這裡是一個大家可以共同創作的地方，  
+各位 **PLLI 們** 可以在這裡互相分享資訊、  
+也能在這邊交朋友、聊天、應援我們的 PLAVE！🌌
+""", unsafe_allow_html=True)
 
-    start_date = st.date_input("開始日期", value=datetime.now().date())
-    start_time = st.time_input("開始時間", value=datetime.now().time())
-    end_date = st.date_input("結束日期", value=datetime.now().date())
-    end_time = st.time_input("結束時間", value=(datetime.now() + timedelta(hours=1)).time())
+# 簡介
+st.markdown("### 📘 PLAVE 簡介")
+st.markdown("""
+**PLAVE** 是韓國的虛擬偶像男團，由五位成員組成：
 
-    start_dt = datetime.combine(start_date, start_time)
-    end_dt = datetime.combine(end_date, end_time)
+包括 NOAH、YEJUN、BAMBY、EUNHO 和 HAMIN，有別於過去的虛擬偶像，
+PLAVE 除了成員們的風格宛如從少女漫畫中走出來的「撕漫男」以外，
+他們的運作方式也相當特別，所有演出、直播、MV 等背後都是由真人實際參與來進行動態捕捉，
+採用 3D 模組技術，揮別於過往二次元偶像的模式，若要與粉絲互動主要是以 Live2D 呈現，以真人動態作為捕捉的 PLAVE，
+不論是與粉絲互動或是私下成員們的一舉一動，都像極了直接跟漫畫人物在現實生活進行交流。
 
-    submit = st.form_submit_button("新增行程")
-    if submit and name:
-        st.session_state.schedule.append({
-            "name": name,
-            "category": category,
-            "start": start_dt,
-            "end": end_dt
-        })
-        st.success("✅ 已新增行程")
+出道於 2023 年，以虛擬形象與超高製作品質受到全球粉絲喜愛！
+""", unsafe_allow_html=True)
 
-# 顯示所有行程
-st.subheader("📋 所有行程")
-if not st.session_state.schedule:
-    st.info("目前尚未新增任何行程")
-else:
-    for i, event in enumerate(st.session_state.schedule):
-        col1, col2 = st.columns([5, 1])
-        with col1:
-            st.markdown(f"**{event['name']}**｜{event['category']}")
-            st.markdown(f"⏳ {event['start']} ～ {event['end']}")
-            now = datetime.now()
-            if event["start"] > now:
-                left = event["start"] - now
-                st.markdown(f"🕒 尚未開始，倒數：{left.days} 天 {left.seconds // 3600} 小時")
-            elif event["start"] <= now <= event["end"]:
-                st.markdown("🟢 活動進行中！")
-            else:
-                st.markdown("⚫ 活動已結束")
-        with col2:
-            if st.button("✏️ 編輯", key=f"edit_{i}"):
-                st.session_state.editing = i
-            if st.button("🗑 刪除", key=f"delete_{i}"):
-                st.session_state.schedule.pop(i)
-                safe_rerun()
+# 音樂播放器
+st.markdown("""
+<div style="text-align: center;">
+    <iframe width="300" height="170"
+        src="https://www.youtube.com/embed/cFm8fTRW_so?loop=1&playlist=cFm8fTRW_so"
+        frameborder="0"
+        allow="autoplay; encrypted-media"
+        allowfullscreen>
+    </iframe>
+    <br>
+    <span style="font-size: 0.9em;">🎵 點上方播放 PLAVE - Wait for you</span>
+</div>
+""", unsafe_allow_html=True)
 
-# 編輯區
-if "editing" in st.session_state:
-    idx = st.session_state.editing
-    ev = st.session_state.schedule[idx]
-    st.subheader("✏️ 編輯行程")
-    with st.form("edit_form"):
-        new_name = st.text_input("活動名稱", value=ev["name"])
-        new_cat = st.selectbox("活動類別", category_options, index=category_options.index(ev["category"]))
+# 結束卡片
+st.markdown("</div>", unsafe_allow_html=True)
 
-        new_start_date = st.date_input("開始日期", value=ev["start"].date())
-        new_start_time = st.time_input("開始時間", value=ev["start"].time())
-        new_end_date = st.date_input("結束日期", value=ev["end"].date())
-        new_end_time = st.time_input("結束時間", value=ev["end"].time())
-
-        new_start = datetime.combine(new_start_date, new_start_time)
-        new_end = datetime.combine(new_end_date, new_end_time)
-
-        save = st.form_submit_button("儲存變更")
-        if save:
-            st.session_state.schedule[idx] = {
-                "name": new_name,
-                "category": new_cat,
-                "start": new_start,
-                "end": new_end
-            }
-            del st.session_state.editing
-            st.success("✅ 已更新行程")
-            safe_rerun()
+st.caption("🌌 Designed for PLLI — 星空與希望的起點 💫")
