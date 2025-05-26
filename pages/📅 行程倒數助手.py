@@ -12,11 +12,11 @@ if "schedule" not in st.session_state:
 # 活動類別選項
 category_options = ["官方活動", "粉絲應援", "演唱會資訊", "節目出演", "社群直播", "其他"]
 
+# 新增行程表單
 st.subheader("➕ 新增行程")
 with st.form("add_event_form", clear_on_submit=True):
     name = st.text_input("活動名稱")
     category = st.selectbox("活動類別", category_options)
-
     start_date = st.date_input("開始日期", value=datetime.now().date())
     start_time = st.time_input("開始時間", value=datetime.now().time())
     end_date = st.date_input("結束日期", value=datetime.now().date())
@@ -35,28 +35,33 @@ with st.form("add_event_form", clear_on_submit=True):
         })
         st.success("✅ 已新增行程")
 
-# 顯示所有行程
+# 顯示所有行程（表格格式）
 st.subheader("📋 所有行程")
 if not st.session_state.schedule:
     st.info("目前尚未新增任何行程")
 else:
-    for i, event in enumerate(st.session_state.schedule):
-        col1, col2 = st.columns([3, 1])
+    df = pd.DataFrame(st.session_state.schedule)
+    now = datetime.now()
+    df["狀態"] = df.apply(lambda row: (
+        f"🕒 倒數 {((row['start'] - now).days)} 天"
+        if row["start"] > now else
+        ("🟢 進行中" if row["start"] <= now <= row["end"] else "⚫ 已結束")
+    ), axis=1)
+    df["開始時間"] = df["start"].dt.strftime("%Y-%m-%d %H:%M")
+    df["結束時間"] = df["end"].dt.strftime("%Y-%m-%d %H:%M")
+    display_df = df[["name", "category", "開始時間", "結束時間", "狀態"]]
+    display_df.columns = ["活動名稱", "活動類別", "開始時間", "結束時間", "目前狀態"]
+
+    st.dataframe(display_df, use_container_width=True)
+
+    # 列出每一行的編輯與刪除按鈕
+    for i in range(len(st.session_state.schedule)):
+        col1, col2 = st.columns(2)
         with col1:
-            st.markdown(f"**{event['name']}**｜{event['category']}")
-            st.markdown(f"⏳ {event['start']} ～ {event['end']}")
-            now = datetime.now()
-            if event["start"] > now:
-                left = event["start"] - now
-                st.markdown(f"🕒 尚未開始，倒數：{left.days} 天 {left.seconds//3600} 小時")
-            elif event["start"] <= now <= event["end"]:
-                st.markdown("🟢 活動進行中！")
-            else:
-                st.markdown("⚫ 活動已結束")
-        with col2:
-            if st.button("✏️ 編輯", key=f"edit_{i}"):
+            if st.button(f"✏️ 編輯第 {i+1} 筆", key=f"edit_{i}"):
                 st.session_state.editing = i
-            if st.button("🗑 刪除", key=f"delete_{i}"):
+        with col2:
+            if st.button(f"🗑 刪除第 {i+1} 筆", key=f"delete_{i}"):
                 st.session_state.schedule.pop(i)
                 st.experimental_rerun()
 
@@ -68,7 +73,6 @@ if "editing" in st.session_state:
     with st.form("edit_form"):
         new_name = st.text_input("活動名稱", value=ev["name"])
         new_cat = st.selectbox("活動類別", category_options, index=category_options.index(ev["category"]))
-
         new_start_date = st.date_input("開始日期", value=ev["start"].date())
         new_start_time = st.time_input("開始時間", value=ev["start"].time())
         new_end_date = st.date_input("結束日期", value=ev["end"].date())
