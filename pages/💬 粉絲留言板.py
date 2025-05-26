@@ -4,7 +4,7 @@ from datetime import datetime
 
 st.set_page_config(page_title="PLAVE 粉絲留言板", page_icon="💬", layout="centered")
 
-st.title("💬 PLAVE 粉絲留言板")
+st.title("💬 PLLI 留言板")
 st.caption("自由留言、回覆、修改、按讚與分享應援話語！")
 
 if "messages" not in st.session_state:
