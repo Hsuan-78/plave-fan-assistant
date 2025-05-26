@@ -15,14 +15,16 @@ if "messages" not in st.session_state:
     else:
         st.session_state.messages = []
 
-# 初始化編輯、回覆、按讚紀錄
+# 保證欄位完整
+for msg in st.session_state.messages:
+    msg.setdefault("likes", 0)
+    msg.setdefault("reply_to", None)
+
+# 初始化互動狀態
 if "editing" not in st.session_state:
     st.session_state.editing = None
 if "replying" not in st.session_state:
     st.session_state.replying = None
-if "likes" not in st.session_state:
-    for msg in st.session_state.messages:
-        msg.setdefault("likes", 0)
 
 def save_messages():
     pd.DataFrame(st.session_state.messages).to_csv(MSG_FILE, index=False)
@@ -46,10 +48,10 @@ with st.form("留言表單", clear_on_submit=True):
 
 st.subheader("📝 所有留言")
 
-# 遍歷留言
+# 留言顯示函式
 def render_message(msg):
     with st.container():
-        indent = "　" if msg["reply_to"] is not None else ""
+        indent = "　" if msg.get("reply_to") is not None else ""
         st.markdown(f"{indent}**{msg['name']}** 說：")
         st.markdown(f"{indent}> {msg['message']}")
         st.caption(f"{indent}🕓 {msg['time']}")
@@ -58,6 +60,7 @@ def render_message(msg):
             if st.button(f"👍 {msg['likes']}", key=f"like_{msg['id']}"):
                 msg["likes"] += 1
                 save_messages()
+                st.experimental_rerun()
         with col2:
             if st.button("✏️", key=f"edit_{msg['id']}"):
                 st.session_state.editing = msg["id"]
@@ -66,15 +69,15 @@ def render_message(msg):
                 st.session_state.replying = msg["id"]
         st.markdown("---")
 
-# 主留言（無父留言）
-main_msgs = [m for m in st.session_state.messages if pd.isna(m["reply_to"]) or m["reply_to"] is None]
+# 主要留言（未回覆的）
+main_msgs = [m for m in st.session_state.messages if "reply_to" not in m or pd.isna(m["reply_to"]) or m["reply_to"] is None]
 for msg in reversed(main_msgs):
     render_message(msg)
     replies = [m for m in st.session_state.messages if m.get("reply_to") == msg["id"]]
     for r in replies:
         render_message(r)
 
-# ✏️ 編輯留言區
+# ✏️ 編輯區
 if st.session_state.editing is not None:
     msg_id = st.session_state.editing
     target = next((m for m in st.session_state.messages if m["id"] == msg_id), None)
@@ -90,7 +93,7 @@ if st.session_state.editing is not None:
                 st.success("✅ 已更新留言")
                 st.experimental_rerun()
 
-# 💬 回覆留言區
+# 💬 回覆區
 if st.session_state.replying is not None:
     parent_id = st.session_state.replying
     parent = next((m for m in st.session_state.messages if m["id"] == parent_id), None)
