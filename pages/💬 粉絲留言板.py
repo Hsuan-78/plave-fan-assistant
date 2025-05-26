@@ -1,83 +1,117 @@
 import streamlit as st
 import pandas as pd
 from datetime import datetime
+import os
 
 st.set_page_config(page_title="PLAVE 粉絲留言板", page_icon="💬", layout="centered")
+st.title("💬 PLAVE 粉絲留言牆")
 
-st.title("💬 PLLI 留言板")
-st.caption("自由留言、回覆、修改、按讚與分享應援話語！")
+MSG_FILE = "fan_messages.csv"
 
+# 初始化留言資料
 if "messages" not in st.session_state:
-    st.session_state.messages = []
+    if os.path.exists(MSG_FILE):
+        st.session_state.messages = pd.read_csv(MSG_FILE).to_dict("records")
+    else:
+        st.session_state.messages = []
 
-with st.form("add_msg_form"):
-    user = st.text_input("你的暱稱", max_chars=20)
-    msg = st.text_area("想說的話", max_chars=200)
-    submitted = st.form_submit_button("送出留言")
-    if submitted and user.strip() and msg.strip():
-        now = datetime.now().strftime("%Y-%m-%d %H:%M")
-        st.session_state.messages.insert(0, {
-            "user": user,
-            "msg": msg,
-            "time": now,
-            "likes": 0,
-            "replies": [],
-            "edit_mode": False
+# 🔧 補齊欄位資料（防止 KeyError）
+for i, msg in enumerate(st.session_state.messages):
+    if "id" not in msg or pd.isna(msg["id"]):
+        msg["id"] = i
+    msg.setdefault("reply_to", None)
+    msg.setdefault("likes", 0)
+
+if "editing" not in st.session_state:
+    st.session_state.editing = None
+if "replying" not in st.session_state:
+    st.session_state.replying = None
+
+def save_messages():
+    pd.DataFrame(st.session_state.messages).to_csv(MSG_FILE, index=False)
+
+# ➕ 新增留言
+with st.form("留言表單", clear_on_submit=True):
+    name = st.text_input("你的名字")
+    message = st.text_area("想說的話")
+    submit_msg = st.form_submit_button("送出留言")
+    if submit_msg and name and message:
+        st.session_state.messages.append({
+            "id": len(st.session_state.messages),
+            "name": name,
+            "message": message,
+            "time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "reply_to": None,
+            "likes": 0
         })
-        st.success("✅ 已留言")
-        st.rerun()
+        save_messages()
+        st.success("✅ 已送出留言")
 
-st.markdown("### 📝 最新留言")
-if not st.session_state.messages:
-    st.info("目前尚無留言，快來留言第一則吧！")
+st.subheader("📝 所有留言")
 
-for i, m in enumerate(st.session_state.messages):
-    with st.expander(f"💬 {m['user']}｜🕒 {m['time']}"):
-        if m.get("edit_mode", False):
-            new_content = st.text_area("✏️ 修改留言內容", value=m["msg"], key=f"edit_text_{i}")
-            save_col, cancel_col = st.columns(2)
-            with save_col:
-                if st.button("💾 儲存", key=f"save_{i}"):
-                    st.session_state.messages[i]["msg"] = new_content
-                    st.session_state.messages[i]["edit_mode"] = False
-                    st.success("✅ 留言已更新")
-                    st.rerun()
-            with cancel_col:
-                if st.button("❌ 取消", key=f"cancel_{i}"):
-                    st.session_state.messages[i]["edit_mode"] = False
-                    st.rerun()
-        else:
-            st.markdown(f"**留言內容：** {m['msg']}")
-            st.markdown(f"👍 按讚數：{m['likes']}")
+def render_message(msg):
+    with st.container():
+        indent = "　" if msg.get("reply_to") is not None else ""
+        st.markdown(f"{indent}**{msg['name']}** 說：")
+        st.markdown(f"{indent}> {msg['message']}")
+        st.caption(f"{indent}🕓 {msg['time']}")
+        col1, col2, col3 = st.columns([1, 1, 6])
+        with col1:
+            if st.button(f"👍 {msg['likes']}", key=f"like_{msg['id']}"):
+                msg["likes"] += 1
+                save_messages()
+                st.experimental_rerun()
+        with col2:
+            if st.button("✏️", key=f"edit_{msg['id']}"):
+                st.session_state.editing = msg["id"]
+        with col3:
+            if st.button("💬 回覆", key=f"reply_{msg['id']}"):
+                st.session_state.replying = msg["id"]
+        st.markdown("---")
 
-        with st.form(f"reply_form_{i}"):
-            reply_user = st.text_input("你的暱稱", key=f"reply_user_{i}")
-            reply_msg = st.text_input("回覆內容", key=f"reply_msg_{i}")
-            reply_btn = st.form_submit_button("回覆")
-            if reply_btn and reply_user.strip() and reply_msg.strip():
-                now = datetime.now().strftime("%Y-%m-%d %H:%M")
-                st.session_state.messages[i]["replies"].append({
-                    "user": reply_user,
-                    "msg": reply_msg,
-                    "time": now
+main_msgs = [m for m in st.session_state.messages if "reply_to" not in m or pd.isna(m["reply_to"]) or m["reply_to"] is None]
+for msg in reversed(main_msgs):
+    render_message(msg)
+    replies = [m for m in st.session_state.messages if m.get("reply_to") == msg["id"]]
+    for r in replies:
+        render_message(r)
+
+# 編輯留言
+if st.session_state.editing is not None:
+    msg_id = st.session_state.editing
+    target = next((m for m in st.session_state.messages if m["id"] == msg_id), None)
+    if target:
+        st.subheader("✏️ 編輯留言")
+        with st.form("edit_form"):
+            new_msg = st.text_area("修改內容", value=target["message"])
+            save_btn = st.form_submit_button("儲存修改")
+            if save_btn and new_msg:
+                target["message"] = new_msg
+                save_messages()
+                st.session_state.editing = None
+                st.success("✅ 已更新留言")
+                st.experimental_rerun()
+
+# 回覆留言
+if st.session_state.replying is not None:
+    parent_id = st.session_state.replying
+    parent = next((m for m in st.session_state.messages if m["id"] == parent_id), None)
+    if parent:
+        st.subheader(f"💬 回覆給 {parent['name']}")
+        with st.form("reply_form"):
+            name = st.text_input("你的名字", key="reply_name")
+            message = st.text_area("你的回覆", key="reply_message")
+            send = st.form_submit_button("送出回覆")
+            if send and name and message:
+                st.session_state.messages.append({
+                    "id": len(st.session_state.messages),
+                    "name": name,
+                    "message": message,
+                    "time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    "reply_to": parent_id,
+                    "likes": 0
                 })
-                st.success("✅ 已回覆")
-                st.rerun()
-
-        if m["replies"]:
-            st.markdown("📨 回覆：")
-            for r in m["replies"]:
-                st.markdown(f"- **{r['user']}**（{r['time']}）：{r['msg']}")
-
-        op1, op2, op3 = st.columns(3)
-        with op1:
-            if not m.get("edit_mode", False) and st.button("✏️ 修改", key=f"edit_btn_{i}"):
-                st.session_state.messages[i]["edit_mode"] = True
-                st.rerun()
-        with op2:
-            if st.button("👍 按讚", key=f"like_{i}"):
-                st.session_state.messages[i]["likes"] += 1
-                st.rerun()
-        with op3:
-            if st.button("📤 分享（模擬）", key=f"share_{i}"):
-                st.success("📎 已複製分享連結！（模擬）")
+                save_messages()
+                st.session_state.replying = None
+                st.success("✅ 已送出回覆")
+                st.experimental_rerun()
