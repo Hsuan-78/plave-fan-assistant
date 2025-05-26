@@ -26,7 +26,7 @@ span, p {
 st.markdown("<div class='card'>", unsafe_allow_html=True)
 
 # LOGO 圖片
-st.image("PLLI.jpg", caption="💖 PLLI 的 LOGO", use_container_width=True)
+st.image("assets/PLLI.jpg", caption="💖 PLLI 的 LOGO", use_container_width=True)
 
 # 歡迎文字
 st.markdown("""
