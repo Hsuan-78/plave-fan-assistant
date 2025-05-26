@@ -11,9 +11,17 @@ MSG_FILE = "fan_messages.csv"
 # 初始化留言資料
 if "messages" not in st.session_state:
     if os.path.exists(MSG_FILE):
-        st.session_state.messages = pd.read_csv(MSG_FILE).to_dict("records")
-    else:
-        st.session_state.messages = []
+    st.session_state.messages = pd.read_csv(MSG_FILE).to_dict("records")
+else:
+    st.session_state.messages = []
+
+# ✅ 這段補進去：
+for i, msg in enumerate(st.session_state.messages):
+    if "id" not in msg or pd.isna(msg["id"]):
+        msg["id"] = i
+    msg.setdefault("reply_to", None)
+    msg.setdefault("likes", 0)
+
 
 # 保證欄位完整
 for msg in st.session_state.messages:
