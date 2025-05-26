@@ -2,13 +2,6 @@ import streamlit as st
 import pandas as pd
 from datetime import datetime, timedelta
 
-from streamlit.runtime.scriptrunner import RerunException
-from streamlit.runtime.scriptrunner.script_run_context import get_script_run_ctx
-
-def safe_rerun():
-    ctx = get_script_run_ctx()
-    raise RerunException(ctx)
-
 st.set_page_config(page_title="行程倒數助手", page_icon="📅", layout="centered")
 st.title("📅 PLAVE 行程倒數助手")
 
@@ -48,14 +41,14 @@ if not st.session_state.schedule:
     st.info("目前尚未新增任何行程")
 else:
     for i, event in enumerate(st.session_state.schedule):
-        col1, col2 = st.columns([5, 1])
+        col1, col2 = st.columns([3, 1])
         with col1:
             st.markdown(f"**{event['name']}**｜{event['category']}")
             st.markdown(f"⏳ {event['start']} ～ {event['end']}")
             now = datetime.now()
             if event["start"] > now:
                 left = event["start"] - now
-                st.markdown(f"🕒 尚未開始，倒數：{left.days} 天 {left.seconds // 3600} 小時")
+                st.markdown(f"🕒 尚未開始，倒數：{left.days} 天 {left.seconds//3600} 小時")
             elif event["start"] <= now <= event["end"]:
                 st.markdown("🟢 活動進行中！")
             else:
@@ -65,7 +58,7 @@ else:
                 st.session_state.editing = i
             if st.button("🗑 刪除", key=f"delete_{i}"):
                 st.session_state.schedule.pop(i)
-                safe_rerun()
+                st.experimental_rerun()
 
 # 編輯區
 if "editing" in st.session_state:
@@ -94,4 +87,4 @@ if "editing" in st.session_state:
             }
             del st.session_state.editing
             st.success("✅ 已更新行程")
-            safe_rerun()
+            st.experimental_rerun()
