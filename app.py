@@ -28,10 +28,12 @@ st.markdown("<div class='card'>", unsafe_allow_html=True)
 # LOGO 圖片
 st.image("assets/PLLI.jpg", caption="💖 PLLI 的 LOGO", use_container_width=True)
 
+st.markdown("""
 <audio controls>
   <source src="app.mp3" type="audio/mpeg">
   您的瀏覽器不支援音訊播放。
 </audio>
+""", unsafe_allow_html=True)
 
 # 歡迎文字
 st.markdown("""
