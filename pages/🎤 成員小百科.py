@@ -44,7 +44,7 @@ members = {
 selected = st.selectbox("請選擇一位成員", list(members.keys()))
 info = members[selected]
 st.markdown(f"### {selected}")
-st.image(f"./{info['photo']}", width=300, caption=f"{selected} 的照片")
+st.image(info["photo"], width=300, caption=f"{selected} 的照片")
 for k, v in info.items():
     if k != "photo":
         st.markdown(f"**{k}**：{v}")
