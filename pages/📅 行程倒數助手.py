@@ -1,15 +1,28 @@
 import streamlit as st
 import pandas as pd
 from datetime import datetime, timedelta
+import os
 
 st.set_page_config(page_title="PLAVE 行程倒數助手", page_icon="📅", layout="centered")
 st.title("📅 PLAVE 行程倒數助手")
 
-# 初始化資料
+DATA_FILE = "schedule_data.csv"
+
+# 資料載入
 if "schedule" not in st.session_state:
-    st.session_state.schedule = []
+    if os.path.exists(DATA_FILE):
+        df = pd.read_csv(DATA_FILE)
+        df["start"] = pd.to_datetime(df["start"])
+        df["end"] = pd.to_datetime(df["end"])
+        st.session_state.schedule = df.to_dict("records")
+    else:
+        st.session_state.schedule = []
+
 if "editing" not in st.session_state:
     st.session_state.editing = None
+
+def save_data():
+    pd.DataFrame(st.session_state.schedule).to_csv(DATA_FILE, index=False)
 
 # 活動類別選項
 category_options = ["官方活動", "粉絲應援", "演唱會資訊", "節目出演", "社群直播", "其他"]
@@ -35,6 +48,7 @@ with st.form("add_event_form", clear_on_submit=True):
             "start": start_dt,
             "end": end_dt
         })
+        save_data()
         st.success("✅ 已新增行程")
 
 # 顯示所有行程
@@ -66,6 +80,7 @@ else:
                 st.session_state.editing = i
             if st.button("🗑 刪除", key=f"delete_{i}"):
                 st.session_state.schedule.pop(i)
+                save_data()
                 st.experimental_rerun()
 
 # 編輯區
@@ -94,6 +109,7 @@ if st.session_state.editing is not None:
                     "start": new_start,
                     "end": new_end
                 }
+                save_data()
                 st.session_state.editing = None
                 st.success("✅ 已更新行程")
                 st.experimental_rerun()
