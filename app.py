@@ -60,7 +60,7 @@ st.markdown("""
         allowfullscreen>
     </iframe>
     <br>
-    <span style="font-size: 0.9em;">🎵 點上方播放 PLAVE - From</span>
+    <span style="font-size: 0.9em;">🎵 點上方播放 PLAVE - Wait for you</span>
 </div>
 """, unsafe_allow_html=True)
 
