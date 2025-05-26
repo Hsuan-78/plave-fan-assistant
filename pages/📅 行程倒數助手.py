@@ -60,7 +60,7 @@ else:
         with cols[5]:
             if st.button("✏️", key=f"edit_{i}"):
                 st.session_state.editing = i
-            if st.button("🗑", key=f"delete_{i}"):
+            if st.button(" 🗑 ", key=f"delete_{i}"):
                 st.session_state.schedule.pop(i)
                 st.experimental_rerun()
 
