@@ -5,14 +5,11 @@ from datetime import datetime, timedelta
 st.set_page_config(page_title="行程倒數助手", page_icon="📅", layout="centered")
 st.title("📅 PLAVE 行程倒數助手")
 
-# 初始化資料
 if "schedule" not in st.session_state:
     st.session_state.schedule = []
 
-# 活動類別選項
 category_options = ["官方活動", "粉絲應援", "演唱會資訊", "節目出演", "社群直播", "其他"]
 
-# ➕ 新增行程
 st.subheader("➕ 新增行程")
 with st.form("add_event_form", clear_on_submit=True):
     name = st.text_input("活動名稱")
@@ -34,11 +31,19 @@ with st.form("add_event_form", clear_on_submit=True):
         })
         st.success("✅ 已新增行程")
 
-# 📋 所有行程（表格呈現＋右側操作）
 st.subheader("📋 所有行程")
 if not st.session_state.schedule:
     st.info("目前尚未新增任何行程")
 else:
+    # 標題列（固定欄位名稱）
+    head = st.columns([2, 2, 2.5, 2.5, 2, 1.5])
+    head[0].markdown("**活動名稱**")
+    head[1].markdown("**類別**")
+    head[2].markdown("**開始時間**")
+    head[3].markdown("**結束時間**")
+    head[4].markdown("**狀態**")
+    head[5].markdown("**操作**")
+
     now = datetime.now()
     for i, event in enumerate(st.session_state.schedule):
         status = (
@@ -46,22 +51,20 @@ else:
             if event["start"] > now else
             ("🟢 進行中" if event["start"] <= now <= event["end"] else "⚫ 已結束")
         )
+        cols = st.columns([2, 2, 2.5, 2.5, 2, 1.5])
+        cols[0].markdown(event["name"])
+        cols[1].markdown(event["category"])
+        cols[2].markdown(event["start"].strftime("%Y-%m-%d %H:%M"))
+        cols[3].markdown(event["end"].strftime("%Y-%m-%d %H:%M"))
+        cols[4].markdown(status)
+        with cols[5]:
+            if st.button("✏️", key=f"edit_{i}"):
+                st.session_state.editing = i
+            if st.button("🗑", key=f"delete_{i}"):
+                st.session_state.schedule.pop(i)
+                st.experimental_rerun()
 
-        with st.container():
-            cols = st.columns([3, 2, 3, 3, 2, 1])
-            cols[0].markdown(f"**{event['name']}**")
-            cols[1].markdown(event["category"])
-            cols[2].markdown(event["start"].strftime("%Y-%m-%d %H:%M"))
-            cols[3].markdown(event["end"].strftime("%Y-%m-%d %H:%M"))
-            cols[4].markdown(status)
-            with cols[5]:
-                if st.button("✏️", key=f"edit_{i}"):
-                    st.session_state.editing = i
-                if st.button("🗑", key=f"delete_{i}"):
-                    st.session_state.schedule.pop(i)
-                    st.experimental_rerun()
-
-# ✏️ 編輯區
+# 編輯區
 if "editing" in st.session_state:
     idx = st.session_state.editing
     ev = st.session_state.schedule[idx]
